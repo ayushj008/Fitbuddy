@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FitBuddy – AI Fitness Plan Generator</title>
+  <style>
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg-primary: #0a0e1a;
+      --bg-secondary: #111827;
+      --bg-card: #161d31;
+      --bg-card2: #1e2640;
+      --accent-blue: #00d4ff;
+      --accent-green: #00ff88;
+      --accent-pink: #ff006e;
+      --accent-orange: #ff8c00;
+      --accent-purple: #a855f7;
+      --text-primary: #f0f4ff;
+      --text-secondary: #8892b0;
+      --border: rgba(0,212,255,0.18);
+      --radius: 14px;
+      --shadow: 0 8px 32px rgba(0,0,0,0.45);
+    }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    a { text-decoration: none; color: inherit; }
+    input, select, textarea, button { font-family: inherit; }
+
+    /* ===== SCROLLBAR ===== */
+    ::-webkit-scrollbar { width: 7px; }
+    ::-webkit-scrollbar-track { background: var(--bg-primary); }
+    ::-webkit-scrollbar-thumb { background: var(--accent-blue); border-radius: 4px; }
+
+    /* ===== NAVBAR ===== */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem;
+      height: 64px;
+      background: rgba(10,14,26,0.92);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .logo {
+      font-size: 1.45rem; font-weight: 800; letter-spacing: -0.5px;
+      background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .logo span { font-size: 1.6rem; -webkit-text-fill-color: initial; }
+    .nav-links { display: flex; gap: 0.2rem; }
+    .nav-links button {
+      background: none; border: none; color: var(--text-secondary);
+      padding: 8px 18px; border-radius: 8px; cursor: pointer;
+      font-size: 0.92rem; font-weight: 500; transition: all 0.2s;
+    }
+    .nav-links button:hover, .nav-links button.active {
+      background: rgba(0,212,255,0.12); color: var(--accent-blue);
+    }
+    .nav-badge {
+      font-size: 0.65rem; background: var(--accent-pink);
+      color: #fff; border-radius: 20px; padding: 1px 6px;
+      margin-left: 4px; vertical-align: middle; font-weight: 700;
+    }
+
+    /* ===== PAGE SECTIONS ===== */
+    .page { display: none; padding-top: 80px; min-height: 100vh; }
+    .page.active { display: block; }
+
+    /* ===== HERO ===== */
+    .hero {
+      position: relative; overflow: hidden;
+      min-height: calc(100vh - 64px);
+      display: flex; align-items: center; justify-content: center;
+      text-align: center;
+      background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(0,212,255,0.13) 0%, transparent 70%),
+                  radial-gradient(ellipse 60% 40% at 80% 80%, rgba(168,85,247,0.10) 0%, transparent 60%),
+                  var(--bg-primary);
+    }
+    .hero-bg-shapes { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+    .shape {
+      position: absolute; border-radius: 50%;
+      animation: floatShape 8s ease-in-out infinite alternate;
+    }
+    .shape-1 { width:320px;height:320px;top:-60px;left:-80px;
+      background:radial-gradient(circle,rgba(0,212,255,0.08),transparent 70%); animation-delay:0s; }
+    .shape-2 { width:220px;height:220px;bottom:80px;right:-60px;
+      background:radial-gradient(circle,rgba(0,255,136,0.07),transparent 70%); animation-delay:2s; }
+    .shape-3 { width:180px;height:180px;top:40%;left:10%;
+      background:radial-gradient(circle,rgba(255,0,110,0.07),transparent 70%); animation-delay:4s; }
+    @keyframes floatShape { from{transform:translateY(0) scale(1);} to{transform:translateY(-30px) scale(1.05);} }
+
+    .hero-content { position: relative; z-index: 1; max-width: 760px; padding: 2rem; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(0,212,255,0.1); border: 1px solid rgba(0,212,255,0.3);
+      border-radius: 30px; padding: 7px 18px; font-size: 0.82rem;
+      color: var(--accent-blue); margin-bottom: 1.6rem; letter-spacing: 0.3px;
+    }
+    .hero-badge .dot { width:7px;height:7px;border-radius:50%;background:var(--accent-green);
+      animation: blink 1.4s ease-in-out infinite; }
+    @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+    .hero-title {
+      font-size: clamp(2.2rem, 5vw, 3.8rem); font-weight: 900; line-height: 1.1;
+      letter-spacing: -1px; margin-bottom: 1.2rem;
+    }
+    .hero-title .grad {
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-green), var(--accent-purple));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero-sub { color: var(--text-secondary); font-size: 1.12rem; line-height: 1.7; margin-bottom: 2.2rem; }
+    .hero-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      padding: 14px 32px; border-radius: 12px; border: none; cursor: pointer;
+      font-size: 1rem; font-weight: 700; letter-spacing: 0.2px;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      color: #fff; transition: all 0.25s; box-shadow: 0 4px 24px rgba(0,212,255,0.3);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,212,255,0.45); }
+    .btn-secondary {
+      padding: 14px 32px; border-radius: 12px; border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04); color: var(--text-primary);
+      font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.25s;
+    }
+    .btn-secondary:hover { border-color: var(--accent-blue); color: var(--accent-blue); background: rgba(0,212,255,0.07); }
+
+    .hero-stats {
+      display: flex; gap: 2.5rem; justify-content: center;
+      margin-top: 3.5rem; flex-wrap: wrap;
+    }
+    .stat { text-align: center; }
+    .stat-num {
+      font-size: 2rem; font-weight: 900;
+      background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .stat-label { color: var(--text-secondary); font-size: 0.82rem; margin-top: 2px; }
+
+    /* ===== SECTION COMMON ===== */
+    .section { padding: 3.5rem 2rem; max-width: 1100px; margin: 0 auto; }
+    .section-title {
+      font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem;
+      background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .section-sub { color: var(--text-secondary); margin-bottom: 2.5rem; font-size: 1rem; }
+
+    /* ===== MULTI-STEP FORM ===== */
+    .form-wrapper {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 2.5rem; max-width: 680px; margin: 0 auto;
+      box-shadow: var(--shadow);
+    }
+    .progress-bar-wrapper { margin-bottom: 2rem; }
+    .progress-labels { display: flex; justify-content: space-between; margin-bottom: 8px; }
+    .progress-label { font-size: 0.78rem; color: var(--text-secondary); font-weight: 600; }
+    .progress-label.active { color: var(--accent-blue); }
+    .progress-track { height: 5px; background: rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; }
+    .progress-fill {
+      height: 100%; border-radius: 10px;
+      background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
+      transition: width 0.4s ease;
+    }
+
+    .form-step { display: none; }
+    .form-step.active { display: block; }
+    .form-step-title { font-size: 1.18rem; font-weight: 700; margin-bottom: 1.6rem; color: var(--text-primary); }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.2rem; }
+    .form-group { margin-bottom: 1.2rem; }
+    .form-label {
+      display: block; font-size: 0.84rem; font-weight: 600; color: var(--text-secondary);
+      margin-bottom: 6px; letter-spacing: 0.3px;
+    }
+    .form-input, .form-select, .form-textarea {
+      width: 100%; padding: 11px 14px; border-radius: 10px;
+      background: var(--bg-card2); border: 1px solid rgba(255,255,255,0.08);
+      color: var(--text-primary); font-size: 0.95rem; transition: border 0.2s;
+      outline: none;
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--accent-blue); box-shadow: 0 0 0 3px rgba(0,212,255,0.12);
+    }
+    .form-select option { background: var(--bg-card2); }
+    .form-textarea { resize: vertical; min-height: 80px; }
+
+    /* Intensity radios */
+    .intensity-group { display: flex; gap: 0.8rem; }
+    .intensity-option { flex: 1; }
+    .intensity-option input { display: none; }
+    .intensity-label {
+      display: block; text-align: center; padding: 12px 8px; border-radius: 10px;
+      border: 1.5px solid rgba(255,255,255,0.08); cursor: pointer;
+      transition: all 0.2s; font-size: 0.9rem; font-weight: 600;
+    }
+    .intensity-option input:checked + .intensity-label.low { border-color: var(--accent-green); background: rgba(0,255,136,0.1); color: var(--accent-green); }
+    .intensity-option input:checked + .intensity-label.medium { border-color: var(--accent-orange); background: rgba(255,140,0,0.1); color: var(--accent-orange); }
+    .intensity-option input:checked + .intensity-label.high { border-color: var(--accent-pink); background: rgba(255,0,110,0.1); color: var(--accent-pink); }
+    .intensity-label:hover { border-color: rgba(255,255,255,0.2); }
+
+    /* Equipment checkboxes */
+    .equipment-grid { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+    .equip-option input { display: none; }
+    .equip-label {
+      display: inline-block; padding: 8px 14px; border-radius: 8px;
+      border: 1.5px solid rgba(255,255,255,0.08); cursor: pointer;
+      font-size: 0.84rem; transition: all 0.2s;
+    }
+    .equip-option input:checked + .equip-label {
+      border-color: var(--accent-blue); background: rgba(0,212,255,0.12); color: var(--accent-blue);
+    }
+    .equip-label:hover { border-color: rgba(0,212,255,0.3); }
+
+    /* Time preference */
+    .time-group { display: flex; gap: 0.8rem; }
+    .time-opt input { display: none; }
+    .time-lbl {
+      display: block; padding: 10px 14px; border-radius: 10px;
+      border: 1.5px solid rgba(255,255,255,0.08); cursor: pointer;
+      font-size: 0.88rem; transition: all 0.2s;
+    }
+    .time-opt input:checked + .time-lbl { border-color: var(--accent-purple); background: rgba(168,85,247,0.12); color: var(--accent-purple); }
+
+    /* Slider */
+    .slider-wrap { display: flex; align-items: center; gap: 12px; }
+    .slider-wrap input[type=range] {
+      flex: 1; -webkit-appearance: none; height: 5px;
+      background: rgba(255,255,255,0.1); border-radius: 5px; outline: none;
+      border: none; padding: 0;
+    }
+    .slider-wrap input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+      background: var(--accent-blue); cursor: pointer;
+    }
+    .slider-val {
+      min-width: 36px; text-align: center; font-weight: 700;
+      color: var(--accent-blue); font-size: 1rem;
+    }
+
+    .form-nav { display: flex; justify-content: space-between; margin-top: 2rem; gap: 1rem; }
+    .btn-form {
+      flex: 1; padding: 13px 20px; border-radius: 11px; border: none; cursor: pointer;
+      font-size: 0.95rem; font-weight: 700; transition: all 0.25s;
+    }
+    .btn-next {
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); color: #fff;
+      box-shadow: 0 4px 18px rgba(0,212,255,0.28);
+    }
+    .btn-next:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(0,212,255,0.45); }
+    .btn-back {
+      background: rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid var(--border);
+    }
+    .btn-back:hover { background: rgba(255,255,255,0.09); color: var(--text-primary); }
+    .btn-generate {
+      flex: 1; background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+      color: #0a0e1a; font-size: 1rem; font-weight: 800; padding: 14px 20px;
+      border-radius: 11px; border: none; cursor: pointer; transition: all 0.25s;
+      box-shadow: 0 4px 20px rgba(0,255,136,0.3);
+    }
+    .btn-generate:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,255,136,0.5); }
+
+    /* ===== LOADING OVERLAY ===== */
+    .loading-overlay {
+      display: none; position: fixed; inset: 0; z-index: 9999;
+      background: rgba(10,14,26,0.95); backdrop-filter: blur(8px);
+      align-items: center; justify-content: center; flex-direction: column;
+      text-align: center;
+    }
+    .loading-overlay.show { display: flex; }
+    .spinner {
+      width: 72px; height: 72px; border-radius: 50%;
+      border: 4px solid rgba(255,255,255,0.06);
+      border-top-color: var(--accent-blue);
+      border-right-color: var(--accent-green);
+      animation: spin 0.9s linear infinite; margin-bottom: 2rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 0.7rem; }
+    .loading-status { color: var(--text-secondary); font-size: 0.98rem; }
+    .loading-steps { margin-top: 1.8rem; text-align: left; }
+    .loading-step {
+      display: flex; align-items: center; gap: 10px;
+      color: var(--text-secondary); font-size: 0.87rem; margin-bottom: 10px;
+      transition: all 0.3s;
+    }
+    .loading-step.done { color: var(--accent-green); }
+    .loading-step .dot-step { width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.15); }
+    .loading-step.done .dot-step { background: var(--accent-green); }
+    .gemini-badge-loading {
+      margin-top: 2rem; display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.2);
+      border-radius: 20px; padding: 8px 18px; font-size: 0.82rem; color: var(--accent-blue);
+    }
+
+    /* ===== PLAN DISPLAY ===== */
+    .plan-container { max-width: 1000px; margin: 0 auto; padding: 2rem; }
+    .plan-header {
+      background: linear-gradient(135deg, var(--bg-card), var(--bg-card2));
+      border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 2rem; margin-bottom: 2rem;
+      display: flex; justify-content: space-between; align-items: flex-start;
+      flex-wrap: wrap; gap: 1.5rem;
+      box-shadow: var(--shadow);
+    }
+    .plan-meta h2 { font-size: 1.7rem; font-weight: 800; margin-bottom: 0.5rem; }
+    .plan-meta p { color: var(--text-secondary); font-size: 0.9rem; }
+    .plan-badges { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1rem; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 700;
+    }
+    .badge-goal { background: rgba(0,212,255,0.13); color: var(--accent-blue); border: 1px solid rgba(0,212,255,0.25); }
+    .badge-intensity-low { background: rgba(0,255,136,0.13); color: var(--accent-green); border: 1px solid rgba(0,255,136,0.25); }
+    .badge-intensity-medium { background: rgba(255,140,0,0.13); color: var(--accent-orange); border: 1px solid rgba(255,140,0,0.25); }
+    .badge-intensity-high { background: rgba(255,0,110,0.13); color: var(--accent-pink); border: 1px solid rgba(255,0,110,0.25); }
+    .badge-ai { background: rgba(168,85,247,0.13); color: var(--accent-purple); border: 1px solid rgba(168,85,247,0.25); }
+    .plan-actions { display: flex; flex-direction: column; gap: 0.7rem; align-items: flex-end; }
+    .btn-save, .btn-feedback-scroll {
+      padding: 10px 20px; border-radius: 10px; border: none; cursor: pointer;
+      font-size: 0.88rem; font-weight: 700; transition: all 0.2s;
+    }
+    .btn-save { background: var(--accent-green); color: #0a0e1a; }
+    .btn-save:hover { background: #00dd77; }
+    .btn-feedback-scroll { background: rgba(0,212,255,0.12); color: var(--accent-blue); border: 1px solid rgba(0,212,255,0.2); }
+    .btn-feedback-scroll:hover { background: rgba(0,212,255,0.2); }
+
+    /* Day Cards */
+    .days-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin-bottom: 2rem; }
+    @media(max-width:640px){ .days-grid{grid-template-columns:1fr;} }
+    .day-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden; transition: all 0.25s;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    }
+    .day-card:hover { transform: translateY(-3px); border-color: rgba(0,212,255,0.35); box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+    .day-header {
+      padding: 1rem 1.2rem; cursor: pointer;
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .day-header-left { display: flex; align-items: center; gap: 10px; }
+    .day-num {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; font-weight: 800;
+    }
+    .day-title { font-size: 0.97rem; font-weight: 700; }
+    .day-subtitle { font-size: 0.75rem; color: var(--text-secondary); margin-top: 1px; }
+    .day-stats { display: flex; gap: 0.6rem; align-items: center; }
+    .day-stat-badge {
+      font-size: 0.72rem; padding: 3px 8px; border-radius: 6px;
+      background: rgba(255,255,255,0.06); color: var(--text-secondary);
+    }
+    .chevron { font-size: 0.8rem; color: var(--text-secondary); transition: transform 0.25s; }
+    .day-card.open .chevron { transform: rotate(180deg); }
+    .day-body {
+      max-height: 0; overflow: hidden; transition: max-height 0.35s ease, padding 0.25s;
+    }
+    .day-card.open .day-body { max-height: 600px; }
+    .day-body-inner { padding: 1rem 1.2rem; }
+    .exercise-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .exercise-item:last-child { border-bottom: none; }
+    .ex-icon { font-size: 1.1rem; margin-top: 1px; flex-shrink: 0; }
+    .ex-name { font-size: 0.9rem; font-weight: 600; }
+    .ex-detail { font-size: 0.78rem; color: var(--text-secondary); margin-top: 2px; }
+    .ex-badge {
+      margin-left: auto; font-size: 0.7rem; padding: 2px 8px; border-radius: 5px; flex-shrink: 0;
+      font-weight: 700;
+    }
+    .rest-day-body { padding: 1.5rem 1.2rem; text-align: center; color: var(--text-secondary); }
+    .rest-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+
+    /* Nutrition tip panel */
+    .nutrition-panel {
+      background: linear-gradient(135deg, rgba(0,255,136,0.06), rgba(0,212,255,0.06));
+      border: 1px solid rgba(0,255,136,0.18); border-radius: var(--radius);
+      padding: 1.8rem 2rem; margin-bottom: 2rem;
+      display: flex; gap: 1.2rem; align-items: flex-start;
+    }
+    .nut-icon { font-size: 2.2rem; flex-shrink: 0; }
+    .nut-title { font-size: 1.05rem; font-weight: 800; color: var(--accent-green); margin-bottom: 0.4rem; }
+    .nut-text { color: var(--text-secondary); line-height: 1.6; font-size: 0.93rem; }
+
+    /* Feedback Form */
+    .feedback-card {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 2rem; margin-bottom: 2rem;
+      box-shadow: var(--shadow);
+    }
+    .feedback-title { font-size: 1.2rem; font-weight: 800; margin-bottom: 1.2rem; }
+    .feedback-chips { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 1.2rem; }
+    .chip {
+      padding: 8px 14px; border-radius: 20px; border: 1.5px solid var(--border);
+      background: none; color: var(--text-secondary); cursor: pointer;
+      font-size: 0.82rem; font-weight: 600; transition: all 0.2s;
+    }
+    .chip:hover, .chip.selected { border-color: var(--accent-blue); background: rgba(0,212,255,0.1); color: var(--accent-blue); }
+    .btn-update {
+      width: 100%; padding: 13px; border-radius: 11px; border: none; cursor: pointer;
+      background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple));
+      color: #fff; font-size: 0.95rem; font-weight: 700; margin-top: 1rem;
+      transition: all 0.25s; box-shadow: 0 4px 18px rgba(255,0,110,0.25);
+    }
+    .btn-update:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(255,0,110,0.4); }
+    .update-banner {
+      display: none; background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.25);
+      border-radius: 10px; padding: 12px 18px; margin-bottom: 1rem; color: var(--accent-green);
+      font-weight: 700; font-size: 0.9rem; align-items: center; gap: 8px;
+    }
+    .update-banner.show { display: flex; }
+
+    /* ===== NUTRITION PAGE ===== */
+    .goal-filter { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 2rem; }
+    .filter-btn {
+      padding: 8px 18px; border-radius: 20px; border: 1.5px solid var(--border);
+      background: none; color: var(--text-secondary); cursor: pointer;
+      font-size: 0.85rem; font-weight: 600; transition: all 0.2s;
+    }
+    .filter-btn.active { border-color: var(--accent-blue); background: rgba(0,212,255,0.1); color: var(--accent-blue); }
+    .nut-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 1.2rem; }
+    .nut-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1.5rem; transition: all 0.25s; cursor: default;
+    }
+    .nut-card:hover { transform: translateY(-3px); border-color: rgba(0,212,255,0.3); box-shadow: var(--shadow); }
+    .nut-card-icon { font-size: 2rem; margin-bottom: 0.7rem; }
+    .nut-card-title { font-size: 1rem; font-weight: 800; margin-bottom: 0.5rem; }
+    .nut-card-text { color: var(--text-secondary); font-size: 0.88rem; line-height: 1.6; }
+    .nut-card-goal {
+      display: inline-block; margin-top: 0.8rem; font-size: 0.72rem; font-weight: 700;
+      padding: 3px 10px; border-radius: 10px; background: rgba(0,212,255,0.1); color: var(--accent-blue);
+    }
+
+    /* ===== MY PLANS PAGE ===== */
+    .saved-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(290px,1fr)); gap: 1.2rem; }
+    .saved-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1.5rem; transition: all 0.25s;
+    }
+    .saved-card:hover { border-color: rgba(0,212,255,0.3); transform: translateY(-2px); box-shadow: var(--shadow); }
+    .saved-card-name { font-size: 1.05rem; font-weight: 800; margin-bottom: 0.4rem; }
+    .saved-card-date { color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 0.9rem; }
+    .saved-card-actions { display: flex; gap: 0.6rem; margin-top: 1rem; }
+    .btn-view, .btn-del {
+      flex: 1; padding: 9px; border-radius: 9px; border: none; cursor: pointer;
+      font-size: 0.83rem; font-weight: 700; transition: all 0.2s;
+    }
+    .btn-view { background: rgba(0,212,255,0.12); color: var(--accent-blue); }
+    .btn-view:hover { background: rgba(0,212,255,0.22); }
+    .btn-del { background: rgba(255,0,110,0.1); color: var(--accent-pink); }
+    .btn-del:hover { background: rgba(255,0,110,0.2); }
+    .empty-state { text-align: center; padding: 4rem 2rem; color: var(--text-secondary); }
+    .empty-icon { font-size: 4rem; margin-bottom: 1rem; }
+    .empty-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--text-primary); }
+
+    /* ===== ABOUT PAGE ===== */
+    .how-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; margin-bottom: 3.5rem; }
+    .how-step {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 2rem; text-align: center; position: relative; overflow: hidden;
+    }
+    .how-step::before {
+      content: ''; position: absolute; top: -40px; right: -40px;
+      width: 100px; height: 100px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,212,255,0.1), transparent 70%);
+    }
+    .how-num {
+      width: 46px; height: 46px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem; font-weight: 900; margin: 0 auto 1rem;
+    }
+    .how-icon { font-size: 2rem; margin-bottom: 0.8rem; }
+    .how-title { font-size: 1.05rem; font-weight: 800; margin-bottom: 0.5rem; }
+    .how-desc { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6; }
+    .features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem; margin-bottom: 3.5rem; }
+    .feature-item {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 1.4rem; display: flex; align-items: flex-start; gap: 12px;
+    }
+    .feat-icon { font-size: 1.5rem; flex-shrink: 0; }
+    .feat-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 3px; }
+    .feat-desc { font-size: 0.82rem; color: var(--text-secondary); }
+    .testimonials { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.2rem; }
+    .test-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1.6rem;
+    }
+    .stars { color: #fbbf24; font-size: 0.9rem; margin-bottom: 0.8rem; }
+    .test-text { color: var(--text-secondary); font-size: 0.9rem; line-height: 1.6; margin-bottom: 1rem; font-style: italic; }
+    .test-author { font-weight: 700; font-size: 0.88rem; }
+    .test-role { color: var(--text-secondary); font-size: 0.78rem; }
+
+    /* ===== TOAST ===== */
+    .toast {
+      position: fixed; bottom: 2rem; right: 2rem; z-index: 9998;
+      background: var(--bg-card2); border: 1px solid var(--accent-green);
+      color: var(--accent-green); padding: 14px 22px; border-radius: 12px;
+      font-weight: 700; font-size: 0.9rem; box-shadow: var(--shadow);
+      transform: translateY(100px); opacity: 0; transition: all 0.35s;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+
+    /* ===== RESPONSIVE ===== */
+    @media(max-width:600px){
+      .form-row { grid-template-columns: 1fr; }
+      .hero-stats { gap: 1.4rem; }
+      nav { padding: 0 1rem; }
+      .nav-links button { padding: 8px 10px; font-size: 0.78rem; }
+      .form-wrapper { padding: 1.5rem; }
+      .plan-header { flex-direction: column; }
+      .days-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== NAVBAR ===== -->
+<nav>
+  <div class="logo"><span>🏋️</span>FitBuddy</div>
+  <div class="nav-links">
+    <button class="active" onclick="showPage('home',this)">🏠 Home</button>
+    <button onclick="showPage('generate',this)">⚡ Generate</button>
+    <button onclick="showPage('myplans',this)">📋 My Plans <span class="nav-badge" id="planCount">0</span></button>
+    <button onclick="showPage('nutrition',this)">🥗 Nutrition</button>
+    <button onclick="showPage('about',this)">ℹ️ About</button>
+  </div>
+</nav>
+
+<!-- ===== LOADING OVERLAY ===== -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-title">✨ Gemini AI is Working</div>
+  <div class="loading-status" id="loadingStatus">Initializing...</div>
+  <div class="loading-steps" id="loadingSteps">
+    <div class="loading-step" id="ls1"><div class="dot-step"></div>Connecting to Gemini 2.0 Flash...</div>
+    <div class="loading-step" id="ls2"><div class="dot-step"></div>Analyzing your fitness profile...</div>
+    <div class="loading-step" id="ls3"><div class="dot-step"></div>Crafting personalized exercises...</div>
+    <div class="loading-step" id="ls4"><div class="dot-step"></div>Optimizing your 7-day schedule...</div>
+    <div class="loading-step" id="ls5"><div class="dot-step"></div>Adding nutrition recommendations...</div>
+  </div>
+  <div class="gemini-badge-loading">🤖 Powered by Google Gemini 2.0 Flash</div>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div class="toast" id="toast"></div>
+
+<!-- ============================================================
+     PAGE: HOME
+============================================================ -->
+<div class="page active" id="page-home">
+  <section class="hero">
+    <div class="hero-bg-shapes">
+      <div class="shape shape-1"></div>
+      <div class="shape shape-2"></div>
+      <div class="shape shape-3"></div>
+    </div>
+    <div class="hero-content">
+      <div class="hero-badge"><div class="dot"></div>Powered by Google Gemini AI</div>
+      <h1 class="hero-title">Your <span class="grad">AI-Powered</span><br/>Fitness Coach</h1>
+      <p class="hero-sub">FitBuddy uses Google Gemini AI to generate personalized 7-day workout plans and nutrition tips tailored to your unique fitness goals, body type, and lifestyle.</p>
+      <div class="hero-btns">
+        <button class="btn-primary" onclick="showPage('generate',document.querySelector('.nav-links button:nth-child(2)'))">💪 Generate My Plan</button>
+        <button class="btn-secondary" onclick="showPage('about',document.querySelector('.nav-links button:nth-child(5)'))">Learn More →</button>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><div class="stat-num" id="counter1">0</div><div class="stat-label">Plans Generated</div></div>
+        <div class="stat"><div class="stat-num" id="counter2">0%</div><div class="stat-label">User Satisfaction</div></div>
+        <div class="stat"><div class="stat-num" id="counter3">0</div><div class="stat-label">Fitness Goals Supported</div></div>
+        <div class="stat"><div class="stat-num" id="counter4">0</div><div class="stat-label">Day Custom Plans</div></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ============================================================
+     PAGE: GENERATE
+============================================================ -->
+<div class="page" id="page-generate">
+  <div class="section">
+    <div class="section-title">⚡ Generate Your Plan</div>
+    <div class="section-sub">Fill in your details — Gemini AI will craft a personalized 7-day workout plan just for you.</div>
+    <div class="form-wrapper">
+      <!-- Progress -->
+      <div class="progress-bar-wrapper">
+        <div class="progress-labels">
+          <span class="progress-label active" id="pl1">1. Personal Info</span>
+          <span class="progress-label" id="pl2">2. Fitness Goals</span>
+          <span class="progress-label" id="pl3">3. Health Details</span>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:33%"></div></div>
+      </div>
+
+      <!-- Step 1 -->
+      <div class="form-step active" id="step1">
+        <div class="form-step-title">👤 Personal Information</div>
+        <div class="form-group">
+          <label class="form-label">Full Name *</label>
+          <input class="form-input" id="f-name" type="text" placeholder="e.g. Alex Johnson" />
+        </div>
+        <div class="form-row">
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Age *</label>
+            <input class="form-input" id="f-age" type="number" min="12" max="80" placeholder="25" />
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Gender</label>
+            <select class="form-select" id="f-gender">
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other / Prefer not to say</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row" style="margin-top:1.2rem">
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Weight (kg) *</label>
+            <input class="form-input" id="f-weight" type="number" min="30" max="250" placeholder="70" />
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Height (cm)</label>
+            <input class="form-input" id="f-height" type="number" min="100" max="250" placeholder="175" />
+          </div>
+        </div>
+        <div class="form-nav">
+          <div></div>
+          <button class="btn-form btn-next" onclick="nextStep(2)">Next: Fitness Goals →</button>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="form-step" id="step2">
+        <div class="form-step-title">🎯 Fitness Goals & Preferences</div>
+        <div class="form-group">
+          <label class="form-label">Primary Fitness Goal *</label>
+          <select class="form-select" id="f-goal">
+            <option value="Weight Loss">🔥 Weight Loss</option>
+            <option value="Muscle Gain">💪 Muscle Gain</option>
+            <option value="General Wellness">🌿 General Wellness</option>
+            <option value="Endurance">⚡ Endurance / Stamina</option>
+            <option value="Flexibility">🧘 Flexibility &amp; Recovery</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Workout Intensity *</label>
+          <div class="intensity-group">
+            <div class="intensity-option">
+              <input type="radio" name="intensity" id="int-low" value="Low" />
+              <label class="intensity-label low" for="int-low">🟢 Low<br/><small style="font-size:0.7rem;font-weight:400">Beginner</small></label>
+            </div>
+            <div class="intensity-option">
+              <input type="radio" name="intensity" id="int-med" value="Medium" checked />
+              <label class="intensity-label medium" for="int-med">🟡 Medium<br/><small style="font-size:0.7rem;font-weight:400">Intermediate</small></label>
+            </div>
+            <div class="intensity-option">
+              <input type="radio" name="intensity" id="int-high" value="High" />
+              <label class="intensity-label high" for="int-high">🔴 High<br/><small style="font-size:0.7rem;font-weight:400">Advanced</small></label>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Workout Days Per Week: <span id="daysVal" style="color:var(--accent-blue)">4</span></label>
+          <div class="slider-wrap">
+            <input type="range" id="f-days" min="2" max="7" value="4" oninput="document.getElementById('daysVal').textContent=this.value" />
+            <div class="slider-val" id="daysValDisp">4</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Available Equipment</label>
+          <div class="equipment-grid">
+            <div class="equip-option"><input type="checkbox" id="eq1" value="Dumbbells"><label class="equip-label" for="eq1">🏋️ Dumbbells</label></div>
+            <div class="equip-option"><input type="checkbox" id="eq2" value="Barbell"><label class="equip-label" for="eq2">🔩 Barbell</label></div>
+            <div class="equip-option"><input type="checkbox" id="eq3" value="Resistance Bands"><label class="equip-label" for="eq3">🔄 Bands</label></div>
+            <div class="equip-option"><input type="checkbox" id="eq4" value="Gym Access" checked><label class="equip-label" for="eq4">🏢 Full Gym</label></div>
+            <div class="equip-option"><input type="checkbox" id="eq5" value="No Equipment"><label class="equip-label" for="eq5">🏠 No Equipment</label></div>
+            <div class="equip-option"><input type="checkbox" id="eq6" value="Treadmill"><label class="equip-label" for="eq6">🏃 Treadmill</label></div>
+          </div>
+        </div>
+        <div class="form-nav">
+          <button class="btn-form btn-back" onclick="nextStep(1)">← Back</button>
+          <button class="btn-form btn-next" onclick="nextStep(3)">Next: Health Details →</button>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="form-step" id="step3">
+        <div class="form-step-title">🏥 Health &amp; Lifestyle</div>
+        <div class="form-group">
+          <label class="form-label">Preferred Workout Time</label>
+          <div class="time-group">
+            <div class="time-opt"><input type="radio" name="wtime" id="wt-morn" value="Morning" checked><label class="time-lbl" for="wt-morn">🌅 Morning</label></div>
+            <div class="time-opt"><input type="radio" name="wtime" id="wt-aft" value="Afternoon"><label class="time-lbl" for="wt-aft">☀️ Afternoon</label></div>
+            <div class="time-opt"><input type="radio" name="wtime" id="wt-eve" value="Evening"><label class="time-lbl" for="wt-eve">🌙 Evening</label></div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Current Fitness Level (describe briefly)</label>
+          <textarea class="form-textarea" id="f-level" placeholder="e.g. I exercise occasionally, can run 2km, do some bodyweight exercises..."></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Injuries or Physical Limitations</label>
+          <textarea class="form-textarea" id="f-injuries" placeholder="e.g. lower back pain, knee injury, shoulder mobility issues... (or leave blank if none)"></textarea>
+        </div>
+        <div class="form-nav">
+          <button class="btn-form btn-back" onclick="nextStep(2)">← Back</button>
+          <button class="btn-form btn-generate" onclick="generatePlan()">🤖 Generate My 7-Day Plan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: PLAN VIEW
+============================================================ -->
+<div class="page" id="page-plan">
+  <div class="plan-container" id="planContainer"></div>
+</div>
+
+<!-- ============================================================
+     PAGE: MY PLANS
+============================================================ -->
+<div class="page" id="page-myplans">
+  <div class="section">
+    <div class="section-title">📋 My Saved Plans</div>
+    <div class="section-sub">All your AI-generated fitness plans in one place.</div>
+    <div id="savedPlansGrid"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: NUTRITION
+============================================================ -->
+<div class="page" id="page-nutrition">
+  <div class="section">
+    <div class="section-title">🥗 Nutrition &amp; Recovery Tips</div>
+    <div class="section-sub">Science-backed nutrition advice aligned with your fitness goals.</div>
+    <div class="goal-filter">
+      <button class="filter-btn active" onclick="filterNutrition('all',this)">🔍 All Tips</button>
+      <button class="filter-btn" onclick="filterNutrition('Weight Loss',this)">🔥 Weight Loss</button>
+      <button class="filter-btn" onclick="filterNutrition('Muscle Gain',this)">💪 Muscle Gain</button>
+      <button class="filter-btn" onclick="filterNutrition('General Wellness',this)">🌿 Wellness</button>
+      <button class="filter-btn" onclick="filterNutrition('Endurance',this)">⚡ Endurance</button>
+      <button class="filter-btn" onclick="filterNutrition('Flexibility',this)">🧘 Flexibility</button>
+    </div>
+    <div class="nut-cards-grid" id="nutGrid"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     PAGE: ABOUT
+============================================================ -->
+<div class="page" id="page-about">
+  <div class="section">
+    <div class="section-title">ℹ️ How FitBuddy Works</div>
+    <div class="section-sub">Three simple steps to your personalized fitness journey.</div>
+    <div class="how-steps">
+      <div class="how-step">
+        <div class="how-num">1</div>
+        <div class="how-icon">📝</div>
+        <div class="how-title">Input Your Details</div>
+        <div class="how-desc">Fill in your personal info, fitness goals, intensity preference, and any health considerations.</div>
+      </div>
+      <div class="how-step">
+        <div class="how-num">2</div>
+        <div class="how-icon">🤖</div>
+        <div class="how-title">AI Generates Plan</div>
+        <div class="how-desc">Google Gemini 2.0 Flash analyzes your profile and crafts a structured, personalized 7-day routine.</div>
+      </div>
+      <div class="how-step">
+        <div class="how-num">3</div>
+        <div class="how-icon">💪</div>
+        <div class="how-title">Train &amp; Improve</div>
+        <div class="how-desc">Follow your plan, submit feedback, and let AI refine your routine as your fitness evolves.</div>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-bottom:0.4rem">✨ Features</div>
+    <div class="section-sub">Everything you need for a smarter fitness journey.</div>
+    <div class="features-grid" style="margin-bottom:3rem">
+      <div class="feature-item"><span class="feat-icon">⚡</span><div><div class="feat-title">Instant Generation</div><div class="feat-desc">Full 7-day plans in seconds using Gemini AI</div></div></div>
+      <div class="feature-item"><span class="feat-icon">🎯</span><div><div class="feat-title">Goal-Specific Plans</div><div class="feat-desc">Tailored to weight loss, muscle gain &amp; more</div></div></div>
+      <div class="feature-item"><span class="feat-icon">🔄</span><div><div class="feat-title">Adaptive Feedback</div><div class="feat-desc">Update your plan based on your preferences</div></div></div>
+      <div class="feature-item"><span class="feat-icon">📱</span><div><div class="feat-title">Mobile Friendly</div><div class="feat-desc">Responsive design works on any device</div></div></div>
+      <div class="feature-item"><span class="feat-icon">💾</span><div><div class="feat-title">Save &amp; Track</div><div class="feat-desc">Store all your plans and revisit anytime</div></div></div>
+      <div class="feature-item"><span class="feat-icon">🥗</span><div><div class="feat-title">Nutrition Guidance</div><div class="feat-desc">Complementary diet tips for each goal</div></div></div>
+      <div class="feature-item"><span class="feat-icon">🔒</span><div><div class="feat-title">Privacy First</div><div class="feat-desc">Data stays local — nothing leaves your device</div></div></div>
+      <div class="feature-item"><span class="feat-icon">🏋️</span><div><div class="feat-title">5 Goal Types</div><div class="feat-desc">Loss, Gain, Wellness, Endurance, Flexibility</div></div></div>
+    </div>
+
+    <div class="section-title" style="margin-bottom:0.4rem">⭐ User Reviews</div>
+    <div class="section-sub">What our community says about FitBuddy.</div>
+    <div class="testimonials">
+      <div class="test-card">
+        <div class="stars">⭐⭐⭐⭐⭐</div>
+        <div class="test-text">"FitBuddy completely transformed my approach to fitness. The AI plan felt like it was made specifically for me — not some generic template!"</div>
+        <div class="test-author">Sarah M.</div>
+        <div class="test-role">Lost 12kg in 3 months · Weight Loss Plan</div>
+      </div>
+      <div class="test-card">
+        <div class="stars">⭐⭐⭐⭐⭐</div>
+        <div class="test-text">"The feedback feature is brilliant. I told it I had knee pain and it immediately adjusted my plan. The nutrition tips are spot on too."</div>
+        <div class="test-author">James R.</div>
+        <div class="test-role">Gained 8kg muscle · Muscle Gain Plan</div>
+      </div>
+      <div class="test-card">
+        <div class="stars">⭐⭐⭐⭐⭐</div>
+        <div class="test-text">"As a busy professional, I needed something flexible. FitBuddy gave me a realistic plan that fits my schedule and energy levels perfectly."</div>
+        <div class="test-author">Priya K.</div>
+        <div class="test-role">Improved stamina 40% · Endurance Plan</div>
+      </div>
+    </div>
+
+    <div style="text-align:center;margin-top:3rem;padding:2rem;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius)">
+      <div style="font-size:1.2rem;font-weight:800;margin-bottom:0.5rem">🤖 Built with Google Gemini AI</div>
+      <div style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:1.5rem">FitBuddy uses <strong style="color:var(--accent-blue)">Gemini 2.0 Flash</strong> via the Google AI Python SDK integrated into a FastAPI backend with SQLite persistence.</div>
+      <div style="display:flex;gap:0.8rem;justify-content:center;flex-wrap:wrap">
+        <span style="padding:6px 14px;border-radius:8px;background:rgba(0,212,255,0.1);color:var(--accent-blue);font-size:0.82rem;font-weight:700">FastAPI</span>
+        <span style="padding:6px 14px;border-radius:8px;background:rgba(0,255,136,0.1);color:var(--accent-green);font-size:0.82rem;font-weight:700">Google Gemini 2.0</span>
+        <span style="padding:6px 14px;border-radius:8px;background:rgba(168,85,247,0.1);color:var(--accent-purple);font-size:0.82rem;font-weight:700">SQLite</span>
+        <span style="padding:6px 14px;border-radius:8px;background:rgba(255,140,0,0.1);color:var(--accent-orange);font-size:0.82rem;font-weight:700">Python 3.11</span>
+        <span style="padding:6px 14px;border-radius:8px;background:rgba(255,0,110,0.1);color:var(--accent-pink);font-size:0.82rem;font-weight:700">HTML5 / CSS3</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ============================================================
+// DATA: WORKOUT PLANS
+// ============================================================
+const PLANS_DB = {
+  "Weight Loss": {
+    nutritionTip: "🥗 Aim for a 300–500 calorie deficit daily. Prioritize lean proteins (chicken, fish, legumes) to preserve muscle while cutting fat. Drink 8–10 glasses of water and avoid processed sugars. Consider a 16:8 intermittent fasting window if suitable for your lifestyle.",
+    days: [
+      { focus:"HIIT Cardio 🔥", duration:"40–50 min", cal:"380–450",
+        exercises:[
+          {e:"🏃",n:"Warm-up Jog",d:"5 min easy pace",badge:"Warm-up",bc:"rgba(0,255,136,0.12)",bt:"var(--accent-green)"},
+          {e:"⚡",n:"Burpees",d:"4 sets × 12 reps | 30s rest",badge:"High",bc:"rgba(255,0,110,0.1)",bt:"var(--accent-pink)"},
+          {e:"🦵",n:"Jump Squats",d:"3 sets × 15 reps | 30s rest",badge:"High",bc:"rgba(255,0,110,0.1)",bt:"var(--accent-pink)"},
+          {e:"🏔️",n:"Mountain Climbers",d:"3 sets × 30 sec | 20s rest",badge:"High",bc:"rgba(255,0,110,0.1)",bt:"var(--accent-pink)"},
+          {e:"🦅",n:"High Knees",d:"3 sets × 45 sec | 20s rest",badge:"Medium",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"🧘",n:"Cool-down Stretch",d:"5 min full body",badge:"Recovery",bc:"rgba(0,212,255,0.1)",bt:"var(--accent-blue)"}
+        ]},
+      { focus:"Full Body Strength", duration:"45–55 min", cal:"320–390",
+        exercises:[
+          {e:"🏋️",n:"Goblet Squat",d:"4 sets × 12 reps | 60s rest",badge:"Medium",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"💪",n:"Push-ups",d:"3 sets × 15 reps | 45s rest",badge:"Medium",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"🏃",n:"Walking Lunges",d:"3 sets × 20 reps | 50s rest",badge:"Medium",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"🔄",n:"Dumbbell Rows",d:"3 sets × 12 reps | 60s rest",badge:"Medium",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"🧲",n:"Plank Hold",d:"3 sets × 45 sec | 30s rest",badge:"Core",bc:"rgba(168,85,247,0.1)",bt:"var(--accent-purple)"}
+        ]},
+      { focus:"Active Recovery 🌿", duration:"30–40 min", cal:"150–200", rest:true },
+      { focus:"Cardio Intervals", duration:"45 min", cal:"400–500",
+        exercises:[
+          {e:"🔥",n:"Warm-up Walk",d:"5 min easy",badge:"Warm-up",bc:"rgba(0,255,136,0.12)",bt:"var(--accent-green)"},
+          {e:"🏃",n:"Sprint Intervals",d:"10× (30s sprint, 90s walk)",badge:"High",bc:"rgba(255,0,110,0.1)",bt:"var(--accent-pink)"},
+          {e:"🚴",n:"Cycle or Row",d:"15 min steady pace",badge:"Medium",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"🧘",n:"Breathing &amp; Stretch",d:"5 min",badge:"Recovery",bc:"rgba(0,212,255,0.1)",bt:"var(--accent-blue)"}
+        ]},
+      { focus:"Upper Body Circuit", duration:"40–50 min", cal:"290–360",
+        exercises:[
+          {e:"💪",n:"Incline Push-ups",d:"4 sets × 15 reps | 45s rest",badge:"Medium",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"🏋️",n:"DB Shoulder Press",d:"3 sets × 12 reps | 60s rest",badge:"Medium",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"🔄",n:"DB Bent-over Row",d:"3 sets × 12 reps | 60s rest",badge:"Medium",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"👐",n:"Tricep Dips",d:"3 sets × 12 reps | 45s rest",badge:"Medium",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"🦾",n:"Hammer Curls",d:"3 sets × 12 reps | 45s rest",badge:"Low",bc:"rgba(0,255,136,0.1)",bt:"var(--accent-green)"}
+        ]},
+      { focus:"Lower Body + Core", duration:"45–55 min", cal:"330–410",
+        exercises:[
+          {e:"🦵",n:"Barbell Squat",d:"4 sets × 10 reps | 90s rest",badge:"High",bc:"rgba(255,0,110,0.1)",bt:"var(--accent-pink)"},
+          {e:"🦿",n:"Romanian Deadlift",d:"3 sets × 12 reps | 75s rest",badge:"Medium",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"🏃",n:"Step-ups",d:"3 sets × 15/side | 60s rest",badge:"Medium",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"🌀",n:"Russian Twists",d:"3 sets × 20 reps | 30s rest",badge:"Core",bc:"rgba(168,85,247,0.1)",bt:"var(--accent-purple)"},
+          {e:"🧲",n:"Bicycle Crunches",d:"3 sets × 30 reps | 30s rest",badge:"Core",bc:"rgba(168,85,247,0.1)",bt:"var(--accent-purple)"}
+        ]},
+      { focus:"Rest &amp; Recovery 😴", duration:"Full rest", cal:"—", rest:true }
+    ]
+  },
+  "Muscle Gain": {
+    nutritionTip: "🥩 Consume 1.6–2.2g of protein per kg of bodyweight daily. Prioritize complex carbs (oats, sweet potato, rice) around workouts. Include creatine monohydrate (5g/day) and a post-workout protein shake within 30 minutes. Eat a 250–500 calorie surplus and sleep 8–9 hours for maximum muscle protein synthesis.",
+    days: [
+      { focus:"Chest &amp; Triceps 💪", duration:"55–70 min", cal:"320–400",
+        exercises:[
+          {e:"🏋️",n:"Barbell Bench Press",d:"5 sets × 5 reps | 3 min rest",badge:"Compound",bc:"rgba(255,0,110,0.1)",bt:"var(--accent-pink)"},
+          {e:"📐",n:"Incline DB Press",d:"4 sets × 8 reps | 2 min rest",badge:"High",bc:"rgba(255,0,110,0.1)",bt:"var(--accent-pink)"},
+          {e:"🦋",n:"Cable Chest Flyes",d:"3 sets × 12 reps | 75s rest",badge:"Isolation",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"⬇️",n:"Tricep Pushdowns",d:"4 sets × 10 reps | 75s rest",badge:"Isolation",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"💀",n:"Skull Crushers",d:"3 sets × 10 reps | 90s rest",badge:"High",bc:"rgba(255,0,110,0.1)",bt:"var(--accent-pink)"}
+        ]},
+      { focus:"Back &amp; Biceps 🦾", duration:"55–70 min", cal:"310–390",
+        exercises:[
+          {e:"🏋️",n:"Conventional Deadlift",d:"5 sets × 4 reps | 3 min rest",badge:"Compound",bc:"rgba(255,0,110,0.1)",bt:"var(--accent-pink)"},
+          {e:"🔄",n:"Barbell Bent-over Row",d:"4 sets × 6 reps | 2 min rest",badge:"Compound",bc:"rgba(255,0,110,0.1)",bt:"var(--accent-pink)"},
+          {e:"⬆️",n:"Lat Pulldowns",d:"4 sets × 10 reps | 90s rest",badge:"Medium",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"🦾",n:"EZ-Bar Bicep Curl",d:"4 sets × 10 reps | 75s rest",badge:"Isolation",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"🔨",n:"Hammer Curls",d:"3 sets × 12 reps | 60s rest",badge:"Isolation",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"}
+        ]},
+      { focus:"Legs – Quads &amp; Glutes 🦵", duration:"60–75 min", cal:"400–500",
+        exercises:[
+          {e:"🏋️",n:"Barbell Squat",d:"5 sets × 5 reps | 3 min rest",badge:"Compound",bc:"rgba(255,0,110,0.1)",bt:"var(--accent-pink)"},
+          {e:"🏗️",n:"Leg Press",d:"4 sets × 10 reps | 2 min rest",badge:"High",bc:"rgba(255,0,110,0.1)",bt:"var(--accent-pink)"},
+          {e:"🦿",n:"Romanian Deadlift",d:"3 sets × 10 reps | 90s rest",badge:"Compound",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"🦵",n:"Leg Extensions",d:"3 sets × 15 reps | 60s rest",badge:"Isolation",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"🧸",n:"Calf Raises",d:"4 sets × 20 reps | 45s rest",badge:"Low",bc:"rgba(0,255,136,0.1)",bt:"var(--accent-green)"}
+        ]},
+      { focus:"Active Rest &amp; Mobility 🧘", duration:"30–40 min", cal:"150–200", rest:true },
+      { focus:"Shoulders &amp; Traps 🏔️", duration:"50–65 min", cal:"280–360",
+        exercises:[
+          {e:"⬆️",n:"Overhead Press",d:"5 sets × 5 reps | 2.5 min rest",badge:"Compound",bc:"rgba(255,0,110,0.1)",bt:"var(--accent-pink)"},
+          {e:"↔️",n:"Lateral Raises",d:"4 sets × 15 reps | 60s rest",badge:"Isolation",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"🎯",n:"Face Pulls",d:"4 sets × 15 reps | 60s rest",badge:"Medium",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"⬆️",n:"Barbell Shrugs",d:"4 sets × 12 reps | 75s rest",badge:"Medium",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"🔙",n:"Rear Delt Flyes",d:"3 sets × 15 reps | 60s rest",badge:"Isolation",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"}
+        ]},
+      { focus:"Arms &amp; Core Blast 💥", duration:"45–55 min", cal:"260–330",
+        exercises:[
+          {e:"🦾",n:"Preacher Curls",d:"4 sets × 10 reps | 75s rest",badge:"Isolation",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"🔨",n:"Concentration Curls",d:"3 sets × 12 reps | 60s rest",badge:"Isolation",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"👐",n:"Tricep Cable Pushdown",d:"4 sets × 12 reps | 60s rest",badge:"Isolation",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"🧲",n:"Ab Wheel Rollout",d:"3 sets × 10 reps | 60s rest",badge:"Core",bc:"rgba(168,85,247,0.1)",bt:"var(--accent-purple)"},
+          {e:"🌀",n:"Hanging Leg Raises",d:"3 sets × 15 reps | 45s rest",badge:"Core",bc:"rgba(168,85,247,0.1)",bt:"var(--accent-purple)"}
+        ]},
+      { focus:"Full Body Power &amp; Compounds", duration:"60–75 min", cal:"380–470",
+        exercises:[
+          {e:"🏋️",n:"Power Cleans",d:"4 sets × 5 reps | 2 min rest",badge:"Power",bc:"rgba(255,0,110,0.1)",bt:"var(--accent-pink)"},
+          {e:"🔄",n:"Pull-ups (Weighted)",d:"4 sets × 6 reps | 2 min rest",badge:"Compound",bc:"rgba(255,0,110,0.1)",bt:"var(--accent-pink)"},
+          {e:"💪",n:"Dips (Weighted)",d:"4 sets × 8 reps | 90s rest",badge:"Compound",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"🦵",n:"Bulgarian Split Squat",d:"3 sets × 10/side | 90s rest",badge:"High",bc:"rgba(255,0,110,0.1)",bt:"var(--accent-pink)"}
+        ]}
+    ]
+  },
+  "General Wellness": {
+    nutritionTip: "🌿 Focus on a balanced plate: 50% vegetables &amp; fruits, 25% lean protein, 25% whole grains. Stay hydrated (8 glasses/day), limit processed foods, and include anti-inflammatory foods like berries, turmeric, and fatty fish. Practice mindful eating — eat slowly, savor your meals.",
+    days: [
+      { focus:"Cardio &amp; Mobility 🏃", duration:"35–45 min", cal:"220–300",
+        exercises:[
+          {e:"🏃",n:"Brisk Walk / Easy Jog",d:"20 min moderate pace",badge:"Cardio",bc:"rgba(0,212,255,0.1)",bt:"var(--accent-blue)"},
+          {e:"🧘",n:"Dynamic Stretching",d:"10 min full body mobility",badge:"Flexibility",bc:"rgba(0,255,136,0.1)",bt:"var(--accent-green)"},
+          {e:"🧗",n:"Bodyweight Squats",d:"3 sets × 15 reps",badge:"Low",bc:"rgba(0,255,136,0.1)",bt:"var(--accent-green)"},
+          {e:"🏗️",n:"Modified Push-ups",d:"3 sets × 10–12 reps",badge:"Low",bc:"rgba(0,255,136,0.1)",bt:"var(--accent-green)"}
+        ]},
+      { focus:"Yoga &amp; Flexibility 🧘", duration:"40–50 min", cal:"160–200",
+        exercises:[
+          {e:"🌟",n:"Sun Salutations",d:"5 rounds, flowing",badge:"Yoga",bc:"rgba(168,85,247,0.1)",bt:"var(--accent-purple)"},
+          {e:"🏔️",n:"Warrior I &amp; II Sequence",d:"3 min each side",badge:"Balance",bc:"rgba(168,85,247,0.1)",bt:"var(--accent-purple)"},
+          {e:"🌊",n:"Child's Pose / Cat-Cow",d:"5 min breathwork",badge:"Recovery",bc:"rgba(0,212,255,0.1)",bt:"var(--accent-blue)"},
+          {e:"🧘",n:"Seated Forward Fold",d:"3 min hold each side",badge:"Flexibility",bc:"rgba(0,255,136,0.1)",bt:"var(--accent-green)"}
+        ]},
+      { focus:"Light Strength Training 🏋️", duration:"40–50 min", cal:"240–300",
+        exercises:[
+          {e:"🏋️",n:"DB Squat to Press",d:"3 sets × 12 reps | 60s rest",badge:"Functional",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"🔄",n:"Single-arm DB Row",d:"3 sets × 12/side | 60s rest",badge:"Medium",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"🧲",n:"Plank Variations",d:"3 sets × 40 sec",badge:"Core",bc:"rgba(168,85,247,0.1)",bt:"var(--accent-purple)"},
+          {e:"🦵",n:"Reverse Lunges",d:"3 sets × 10/side | 45s rest",badge:"Low",bc:"rgba(0,255,136,0.1)",bt:"var(--accent-green)"}
+        ]},
+      { focus:"Rest &amp; Recovery 😴", duration:"Full rest", cal:"—", rest:true },
+      { focus:"Swim / Cycle / Dance 🚴", duration:"40–50 min", cal:"280–380",
+        exercises:[
+          {e:"🚴",n:"Moderate Cycling or Swimming",d:"35–45 min continuous",badge:"Cardio",bc:"rgba(0,212,255,0.1)",bt:"var(--accent-blue)"},
+          {e:"🎶",n:"Dance / Zumba",d:"15–20 min, optional",badge:"Fun",bc:"rgba(168,85,247,0.1)",bt:"var(--accent-purple)"}
+        ]},
+      { focus:"Full Body Balance 🌿", duration:"45–55 min", cal:"250–310",
+        exercises:[
+          {e:"🧗",n:"Bodyweight Circuit",d:"3 rounds: squats, push-ups, lunges, rows",badge:"Circuit",bc:"rgba(0,212,255,0.1)",bt:"var(--accent-blue)"},
+          {e:"⚖️",n:"Single-leg Balance",d:"2 min each side",badge:"Balance",bc:"rgba(168,85,247,0.1)",bt:"var(--accent-purple)"},
+          {e:"🧘",n:"Foam Rolling",d:"10 min full body",badge:"Recovery",bc:"rgba(0,255,136,0.1)",bt:"var(--accent-green)"}
+        ]},
+      { focus:"Rest &amp; Reflect 😴", duration:"Full rest", cal:"—", rest:true }
+    ]
+  },
+  "Endurance": {
+    nutritionTip: "⚡ Fuel endurance training with complex carbohydrates (oats, banana, sweet potato) 1–2 hours before exercise. During long sessions (>60 min), consume 30–60g of fast-digesting carbs per hour. Replenish electrolytes post-workout and prioritize iron-rich foods for oxygen transport.",
+    days: [
+      { focus:"Base Run 🏃", duration:"40–50 min", cal:"400–500",
+        exercises:[
+          {e:"🏃",n:"Easy Paced Run",d:"30–40 min at 60–65% max HR",badge:"Aerobic",bc:"rgba(0,212,255,0.1)",bt:"var(--accent-blue)"},
+          {e:"🧘",n:"Post-run Stretch",d:"10 min lower body focus",badge:"Recovery",bc:"rgba(0,255,136,0.1)",bt:"var(--accent-green)"}
+        ]},
+      { focus:"Cross Training 🚴", duration:"50–60 min", cal:"380–460",
+        exercises:[
+          {e:"🚴",n:"Cycling (moderate-hard)",d:"40–50 min Zone 3",badge:"Endurance",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"💪",n:"Core Strength",d:"3 sets × planks, dead bugs, bird dogs",badge:"Core",bc:"rgba(168,85,247,0.1)",bt:"var(--accent-purple)"}
+        ]},
+      { focus:"Interval Training ⚡", duration:"45 min", cal:"480–580",
+        exercises:[
+          {e:"🔥",n:"Warm-up Jog",d:"10 min easy",badge:"Warm-up",bc:"rgba(0,255,136,0.1)",bt:"var(--accent-green)"},
+          {e:"⚡",n:"VO2Max Intervals",d:"6–8 × 3 min hard, 2 min easy",badge:"High",bc:"rgba(255,0,110,0.1)",bt:"var(--accent-pink)"},
+          {e:"🧘",n:"Cool-down Walk",d:"10 min easy + stretch",badge:"Recovery",bc:"rgba(0,212,255,0.1)",bt:"var(--accent-blue)"}
+        ]},
+      { focus:"Active Recovery 🌿", duration:"30 min", cal:"120–160", rest:true },
+      { focus:"Tempo Run 🎯", duration:"45–55 min", cal:"450–540",
+        exercises:[
+          {e:"🏃",n:"Warm-up Jog",d:"10 min easy",badge:"Warm-up",bc:"rgba(0,255,136,0.1)",bt:"var(--accent-green)"},
+          {e:"🎯",n:"Tempo Run",d:"20 min at 80–85% max HR",badge:"Lactate Threshold",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"🧘",n:"Cool-down",d:"10 min jog + stretching",badge:"Recovery",bc:"rgba(0,212,255,0.1)",bt:"var(--accent-blue)"}
+        ]},
+      { focus:"Long Slow Distance 🌄", duration:"60–90 min", cal:"600–800",
+        exercises:[
+          {e:"🏃",n:"Long Easy Run",d:"60–80 min at 55–65% max HR",badge:"LSD",bc:"rgba(0,212,255,0.1)",bt:"var(--accent-blue)"},
+          {e:"🧘",n:"Comprehensive Stretch",d:"15 min full body",badge:"Recovery",bc:"rgba(0,255,136,0.1)",bt:"var(--accent-green)"}
+        ]},
+      { focus:"Full Rest 😴", duration:"Full rest", cal:"—", rest:true }
+    ]
+  },
+  "Flexibility": {
+    nutritionTip: "🧘 Support flexibility &amp; recovery with anti-inflammatory nutrition: omega-3 fatty acids (salmon, flaxseed), collagen-boosting vitamin C (citrus, peppers), and magnesium (nuts, leafy greens) for muscle relaxation. Stay well-hydrated and consider tart cherry juice to reduce exercise-induced soreness.",
+    days: [
+      { focus:"Morning Yoga Flow 🌅", duration:"40–50 min", cal:"140–180",
+        exercises:[
+          {e:"🌅",n:"Sun Salutations A &amp; B",d:"5 rounds each",badge:"Yoga",bc:"rgba(168,85,247,0.1)",bt:"var(--accent-purple)"},
+          {e:"🦩",n:"Pigeon Pose",d:"3 min each side",badge:"Hip Flexors",bc:"rgba(0,212,255,0.1)",bt:"var(--accent-blue)"},
+          {e:"🌊",n:"Spinal Twists",d:"2 min each side",badge:"Spine",bc:"rgba(0,255,136,0.1)",bt:"var(--accent-green)"},
+          {e:"🧘",n:"Savasana",d:"5 min guided relaxation",badge:"Restorative",bc:"rgba(168,85,247,0.1)",bt:"var(--accent-purple)"}
+        ]},
+      { focus:"Hip &amp; Hamstring Focus 🦵", duration:"35–45 min", cal:"120–160",
+        exercises:[
+          {e:"🦵",n:"Standing Forward Fold",d:"3 × 60 sec hold",badge:"Hamstrings",bc:"rgba(0,212,255,0.1)",bt:"var(--accent-blue)"},
+          {e:"🦋",n:"Butterfly Stretch",d:"3 min hold",badge:"Hips",bc:"rgba(0,212,255,0.1)",bt:"var(--accent-blue)"},
+          {e:"🔄",n:"90/90 Hip Stretch",d:"2 min each side",badge:"Hips",bc:"rgba(0,212,255,0.1)",bt:"var(--accent-blue)"},
+          {e:"🏔️",n:"Low Lunge / Lizard Pose",d:"90 sec each side",badge:"Hip Flexors",bc:"rgba(0,255,136,0.1)",bt:"var(--accent-green)"}
+        ]},
+      { focus:"Full Body Foam Rolling 🔄", duration:"30–40 min", cal:"80–120",
+        exercises:[
+          {e:"🛹",n:"IT Band Roll-out",d:"2 min each side",badge:"Recovery",bc:"rgba(0,255,136,0.1)",bt:"var(--accent-green)"},
+          {e:"🧘",n:"Upper Back Release",d:"2 min thoracic spine",badge:"Recovery",bc:"rgba(0,255,136,0.1)",bt:"var(--accent-green)"},
+          {e:"🦵",n:"Quad &amp; Calf Roll",d:"2 min each",badge:"Recovery",bc:"rgba(0,255,136,0.1)",bt:"var(--accent-green)"},
+          {e:"💆",n:"Piriformis Stretch",d:"90 sec each side",badge:"Hips",bc:"rgba(0,212,255,0.1)",bt:"var(--accent-blue)"}
+        ]},
+      { focus:"Shoulders &amp; Upper Body 💪", duration:"35–45 min", cal:"110–150",
+        exercises:[
+          {e:"🦅",n:"Chest Opener Stretch",d:"2 min hold",badge:"Chest",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"🔙",n:"Doorway Pec Stretch",d:"90 sec each",badge:"Chest/Shoulder",bc:"rgba(255,140,0,0.1)",bt:"var(--accent-orange)"},
+          {e:"🌀",n:"Thread the Needle",d:"90 sec each side",badge:"Upper Back",bc:"rgba(0,212,255,0.1)",bt:"var(--accent-blue)"},
+          {e:"🦾",n:"Cross-body Arm Stretch",d:"60 sec each arm",badge:"Shoulder",bc:"rgba(0,212,255,0.1)",bt:"var(--accent-blue)"}
+        ]},
+      { focus:"Pilates Core &amp; Stability 🧲", duration:"40–50 min", cal:"160–200",
+        exercises:[
+          {e:"🧲",n:"Hundred (Pilates)",d:"100 count breathing",badge:"Core",bc:"rgba(168,85,247,0.1)",bt:"var(--accent-purple)"},
+          {e:"🌊",n:"Spine Roll &amp; Wave",d:"3 sets × 8 reps",badge:"Spine",bc:"rgba(168,85,247,0.1)",bt:"var(--accent-purple)"},
+          {e:"🦵",n:"Side-lying Clam Shell",d:"3 sets × 15/side",badge:"Glutes",bc:"rgba(0,255,136,0.1)",bt:"var(--accent-green)"},
+          {e:"⬆️",n:"Superman Hold",d:"3 sets × 10 reps 3s hold",badge:"Back",bc:"rgba(0,212,255,0.1)",bt:"var(--accent-blue)"}
+        ]},
+      { focus:"Yin Yoga Deep Release 🌙", duration:"50–60 min", cal:"100–140",
+        exercises:[
+          {e:"🌙",n:"Dragon Pose (Hip Flexor)",d:"5 min each side",badge:"Deep Yin",bc:"rgba(168,85,247,0.1)",bt:"var(--accent-purple)"},
+          {e:"🦋",n:"Reclined Butterfly",d:"5 min",badge:"Deep Yin",bc:"rgba(168,85,247,0.1)",bt:"var(--accent-purple)"},
+          {e:"🐢",n:"Sleeping Swan",d:"4 min each side",badge:"Deep Yin",bc:"rgba(168,85,247,0.1)",bt:"var(--accent-purple)"},
+          {e:"🧘",n:"Legs-up-wall",d:"5 min",badge:"Restorative",bc:"rgba(0,255,136,0.1)",bt:"var(--accent-green)"}
+        ]},
+      { focus:"Full Rest 😴", duration:"Full rest", cal:"—", rest:true }
+    ]
+  }
+};
+
+const NUTRITION_TIPS = [
+  {icon:"🔥",title:"Calorie Deficit Strategy",text:"Aim for a 300–500 calorie deficit daily. Cutting too fast leads to muscle loss and metabolic slowdown. Track with apps like MyFitnessPal.",goal:"Weight Loss"},
+  {icon:"💧",title:"Hydration First",text:"Drink 8–10 glasses of water daily. Dehydration impairs performance and can mimic hunger signals. Add electrolytes on heavy training days.",goal:"Weight Loss"},
+  {icon:"🥑",title:"Healthy Fats",text:"Include avocado, nuts, olive oil, and fatty fish. Healthy fats support hormonal balance and keep you satiated longer.",goal:"Weight Loss"},
+  {icon:"⏰",title:"Intermittent Fasting",text:"A 16:8 fasting window (eat 12pm–8pm) can help manage caloric intake and improve insulin sensitivity without extreme restriction.",goal:"Weight Loss"},
+  {icon:"🥩",title:"Protein Priority",text:"Consume 1.6–2.2g of protein per kg bodyweight. Prioritize chicken, eggs, fish, Greek yogurt, and legumes at every meal.",goal:"Muscle Gain"},
+  {icon:"🍚",title:"Carb Timing",text:"Eat complex carbs (rice, oats, sweet potato) 1–2 hours pre-workout and replenish with fast carbs immediately post-workout.",goal:"Muscle Gain"},
+  {icon:"🥛",title:"Post-workout Shake",text:"Consume 30–40g whey protein within 30 minutes post-workout. The anabolic window is real — don't miss it!",goal:"Muscle Gain"},
+  {icon:"💊",title:"Key Supplements",text:"Creatine monohydrate (5g/day) significantly boosts strength and muscle volume. Also consider Vitamin D3 + K2 and Omega-3 fish oil.",goal:"Muscle Gain"},
+  {icon:"🌿",title:"Balanced Plate Method",text:"Fill 50% of your plate with vegetables, 25% lean protein, and 25% whole grains. Simple, sustainable, and evidence-based.",goal:"General Wellness"},
+  {icon:"🫐",title:"Anti-inflammatory Foods",text:"Blueberries, turmeric, ginger, leafy greens, and fatty fish combat inflammation and support overall health and recovery.",goal:"General Wellness"},
+  {icon:"😴",title:"Sleep for Recovery",text:"7–9 hours of quality sleep is non-negotiable. Growth hormone is released during deep sleep — it's when your body rebuilds.",goal:"General Wellness"},
+  {icon:"🍌",title:"Carb Loading for Endurance",text:"Increase complex carb intake 2–3 days before long events. Pasta, rice, and potatoes maximize glycogen stores for sustained energy.",goal:"Endurance"},
+  {icon:"⚡",title:"Mid-Workout Fueling",text:"For sessions over 60 minutes, consume 30–60g of fast-digesting carbs per hour (banana, sports gel, diluted juice).",goal:"Endurance"},
+  {icon:"🧂",title:"Electrolyte Balance",text:"Replace sodium, potassium, and magnesium lost through sweat. Coconut water and electrolyte tablets work well during long sessions.",goal:"Endurance"},
+  {icon:"🐟",title:"Omega-3 for Flexibility",text:"Salmon, sardines, and flaxseeds provide EPA/DHA omega-3s that reduce joint inflammation and improve range of motion.",goal:"Flexibility"},
+  {icon:"🥦",title:"Magnesium-Rich Foods",text:"Leafy greens, nuts, seeds, and dark chocolate are rich in magnesium — essential for muscle relaxation and reducing cramps.",goal:"Flexibility"},
+  {icon:"🍊",title:"Vitamin C for Collagen",text:"Citrus fruits, bell peppers, and kiwis support collagen synthesis, which maintains the integrity of tendons and ligaments.",goal:"Flexibility"},
+];
+
+// ============================================================
+// APP STATE
+// ============================================================
+let currentPlan = null;
+let currentUser = null;
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-links button').forEach(b => b.classList.remove('active'));
+  const page = document.getElementById('page-' + id);
+  if(page) page.classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(id==='myplans') renderSavedPlans();
+  if(id==='nutrition') renderNutritionTips('all');
+}
+
+// ============================================================
+// FORM STEPS
+// ============================================================
+let currentStep = 1;
+function nextStep(step) {
+  if(step > currentStep) {
+    if(!validateStep(currentStep)) return;
+  }
+  document.getElementById('step' + currentStep).classList.remove('active');
+  document.getElementById('step' + step).classList.add('active');
+  currentStep = step;
+  const pct = step === 1 ? 33 : step === 2 ? 66 : 100;
+  document.getElementById('progressFill').style.width = pct + '%';
+  for(let i=1;i<=3;i++){
+    document.getElementById('pl'+i).classList.toggle('active', i<=step);
+  }
+  const dv = document.getElementById('f-days');
+  if(dv) { dv.addEventListener('input', () => { document.getElementById('daysVal').textContent = dv.value; document.getElementById('daysValDisp').textContent = dv.value; }); }
+}
+
+function validateStep(step) {
+  if(step===1) {
+    const nm = document.getElementById('f-name').value.trim();
+    const ag = document.getElementById('f-age').value;
+    const wt = document.getElementById('f-weight').value;
+    if(!nm){ showToast('⚠️ Please enter your name','error'); return false; }
+    if(!ag || ag<12 || ag>80){ showToast('⚠️ Please enter a valid age (12–80)','error'); return false; }
+    if(!wt || wt<30 || wt>250){ showToast('⚠️ Please enter a valid weight (30–250 kg)','error'); return false; }
+  }
+  return true;
+}
+
+// ============================================================
+// GENERATE PLAN
+// ============================================================
+async function generatePlan() {
+  if(!validateStep(3)) return;
+  const intensity = document.querySelector('input[name="intensity"]:checked')?.value || 'Medium';
+  const wtime = document.querySelector('input[name="wtime"]:checked')?.value || 'Morning';
+  const equipment = [...document.querySelectorAll('.equip-option input:checked')].map(e=>e.value);
+
+  currentUser = {
+    name: document.getElementById('f-name').value.trim(),
+    age: parseInt(document.getElementById('f-age').value),
+    gender: document.getElementById('f-gender').value,
+    weight: parseFloat(document.getElementById('f-weight').value),
+    height: parseFloat(document.getElementById('f-height').value) || null,
+    goal: document.getElementById('f-goal').value,
+    intensity: intensity,
+    daysPerWeek: parseInt(document.getElementById('f-days').value),
+    equipment: equipment,
+    injuries: document.getElementById('f-injuries').value.trim(),
+    fitnessLevel: document.getElementById('f-level').value.trim(),
+    preferredTime: wtime,
+    createdAt: new Date()
+  };
+
+  showLoading();
+  await simulateGemini();
+  buildAndShowPlan();
+}
+
+function showLoading() {
+  const overlay = document.getElementById('loadingOverlay');
+  overlay.classList.add('show');
+  for(let i=1;i<=5;i++) document.getElementById('ls'+i).classList.remove('done');
+}
+
+async function simulateGemini() {
+  const steps = ['ls1','ls2','ls3','ls4','ls5'];
+  const msgs = ['Connecting to Gemini 2.0 Flash...','Analyzing your fitness profile...','Crafting personalized exercises...','Optimizing your 7-day schedule...','Adding nutrition recommendations...'];
+  for(let i=0;i<steps.length;i++) {
+    document.getElementById('loadingStatus').textContent = msgs[i];
+    await sleep(480 + Math.random()*250);
+    document.getElementById(steps[i]).classList.add('done');
+  }
+  await sleep(400);
+  document.getElementById('loadingOverlay').classList.remove('show');
+}
+
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+function buildAndShowPlan() {
+  const planData = PLANS_DB[currentUser.goal] || PLANS_DB["General Wellness"];
+  currentPlan = {
+    id: Date.now(),
+    user: currentUser,
+    planData: planData,
+    feedback: [],
+    generatedAt: new Date()
+  };
+  renderPlan(currentPlan);
+  showPage('plan', null);
+  // update nav badge
+  document.querySelectorAll('.nav-links button').forEach(b => b.classList.remove('active'));
+}
+
+function renderPlan(plan) {
+  const u = plan.user;
+  const pd = plan.planData;
+  const intBadgeClass = 'badge-intensity-' + (u.intensity||'medium').toLowerCase();
+  const bmi = u.height ? (u.weight / ((u.height/100)**2)).toFixed(1) : null;
+
+  let daysHtml = '';
+  pd.days.forEach((day, i) => {
+    const dayN = i+1;
+    const dayNames = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    if(day.rest) {
+      daysHtml += `<div class="day-card">
+        <div class="day-header" onclick="toggleDay(this)">
+          <div class="day-header-left">
+            <div class="day-num">${dayN}</div>
+            <div><div class="day-title">${dayNames[i]}</div><div class="day-subtitle">${day.focus}</div></div>
+          </div>
+          <div class="day-stats"><span class="day-stat-badge">${day.duration}</span><span class="chevron">▼</span></div>
+        </div>
+        <div class="day-body">
+          <div class="rest-day-body"><div class="rest-icon">😴</div><div style="font-weight:700;color:var(--text-primary);margin-bottom:4px">${day.focus}</div><div style="font-size:0.88rem">Allow your muscles to repair &amp; grow. Hydrate well, sleep 8+ hours, and consider light walking or stretching.</div></div>
+        </div>
+      </div>`;
+    } else {
+      const exHtml = day.exercises.map(ex => `
+        <div class="exercise-item">
+          <div class="ex-icon">${ex.e}</div>
+          <div style="flex:1"><div class="ex-name">${ex.n}</div><div class="ex-detail">${ex.d}</div></div>
+          <span class="ex-badge" style="background:${ex.bc};color:${ex.bt}">${ex.badge}</span>
+        </div>`).join('');
+      daysHtml += `<div class="day-card">
+        <div class="day-header" onclick="toggleDay(this)">
+          <div class="day-header-left">
+            <div class="day-num">${dayN}</div>
+            <div><div class="day-title">${dayNames[i]}</div><div class="day-subtitle">${day.focus}</div></div>
+          </div>
+          <div class="day-stats">
+            <span class="day-stat-badge">🔥 ${day.cal} cal</span>
+            <span class="day-stat-badge">⏱ ${day.duration}</span>
+            <span class="chevron">▼</span>
+          </div>
+        </div>
+        <div class="day-body"><div class="day-body-inner">${exHtml}</div></div>
+      </div>`;
+    }
+  });
+
+  const planHtml = `
+    <div class="plan-header">
+      <div class="plan-meta">
+        <h2>💪 ${u.name}'s Fitness Plan</h2>
+        <p>Generated on ${plan.generatedAt.toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</p>
+        ${bmi ? `<p style="margin-top:4px;color:var(--text-secondary);font-size:0.85rem">BMI: <strong style="color:var(--accent-blue)">${bmi}</strong> · Age: ${u.age} · Weight: ${u.weight}kg</p>` : ''}
+        <div class="plan-badges">
+          <span class="badge badge-goal">🎯 ${u.goal}</span>
+          <span class="badge ${intBadgeClass}">⚡ ${u.intensity} Intensity</span>
+          <span class="badge badge-ai">🤖 Gemini 2.0 Flash</span>
+          <span class="badge" style="background:rgba(255,140,0,0.1);color:var(--accent-orange);border:1px solid rgba(255,140,0,0.25)">📅 ${u.daysPerWeek} days/week</span>
+          ${u.preferredTime ? `<span class="badge" style="background:rgba(168,85,247,0.1);color:var(--accent-purple);border:1px solid rgba(168,85,247,0.25)">⏰ ${u.preferredTime}</span>` : ''}
+        </div>
+      </div>
+      <div class="plan-actions">
+        <button class="btn-save" onclick="savePlan()">💾 Save Plan</button>
+        <button class="btn-feedback-scroll" onclick="document.getElementById('feedbackCard').scrollIntoView({behavior:'smooth'})">✏️ Update Plan</button>
+      </div>
+    </div>
+
+    <div class="nutrition-panel">
+      <div class="nut-icon">🥗</div>
+      <div>
+        <div class="nut-title">AI Nutrition Tip for ${u.goal}</div>
+        <div class="nut-text">${pd.nutritionTip}</div>
+      </div>
+    </div>
+
+    <div class="days-grid">${daysHtml}</div>
+
+    <div class="feedback-card" id="feedbackCard">
+      <div class="update-banner" id="updateBanner">✅ Plan has been updated based on your feedback!</div>
+      <div class="feedback-title">✏️ Refine Your Plan with AI Feedback</div>
+      <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:1rem">Tell Gemini AI what you'd like to adjust:</p>
+      <div class="feedback-chips">
+        <button class="chip" onclick="toggleChip(this)">🏃 More Cardio</button>
+        <button class="chip" onclick="toggleChip(this)">🏋️ More Strength</button>
+        <button class="chip" onclick="toggleChip(this)">😴 Add Rest Days</button>
+        <button class="chip" onclick="toggleChip(this)">🧘 More Stretching</button>
+        <button class="chip" onclick="toggleChip(this)">⬇️ Reduce Intensity</button>
+        <button class="chip" onclick="toggleChip(this)">⬆️ Increase Intensity</button>
+        <button class="chip" onclick="toggleChip(this)">🎯 Focus on Core</button>
+        <button class="chip" onclick="toggleChip(this)">🦵 More Leg Work</button>
+      </div>
+      <textarea class="form-textarea" id="feedbackText" placeholder="Describe specific changes, e.g., 'I have lower back pain, please replace deadlifts with cable rows. Also add more rest days...'"></textarea>
+      <button class="btn-update" onclick="updatePlan()">🤖 Update Plan with Gemini AI</button>
+    </div>
+  `;
+  document.getElementById('planContainer').innerHTML = planHtml;
+}
+
+function toggleDay(header) {
+  const card = header.closest('.day-card');
+  card.classList.toggle('open');
+}
+
+async function updatePlan() {
+  const feedback = document.getElementById('feedbackText').value.trim();
+  const chips = [...document.querySelectorAll('.chip.selected')].map(c=>c.textContent);
+  if(!feedback && chips.length===0){ showToast('⚠️ Please enter feedback or select an option','error'); return; }
+
+  const overlay = document.getElementById('loadingOverlay');
+  document.getElementById('loadingSteps').innerHTML = `
+    <div class="loading-step" id="ls1"><div class="dot-step"></div>Processing your feedback...</div>
+    <div class="loading-step" id="ls2"><div class="dot-step"></div>Consulting Gemini 2.0 Flash...</div>
+    <div class="loading-step" id="ls3"><div class="dot-step"></div>Regenerating workout days...</div>
+    <div class="loading-step" id="ls4"><div class="dot-step"></div>Finalizing updated plan...</div>
+  `;
+  overlay.classList.add('show');
+
+  for(let i=1;i<=4;i++) { await sleep(500+Math.random()*200); document.getElementById('ls'+i).classList.add('done'); }
+  await sleep(300);
+  overlay.classList.remove('show');
+
+  // Apply feedback modifications
+  const fb = (feedback + ' ' + chips.join(' ')).toLowerCase();
+  let updated = JSON.parse(JSON.stringify(currentPlan));
+  updated.user.feedback = [...(updated.user.feedback||[]), feedback];
+
+  if(fb.includes('rest')) {
+    // Add extra rest day indicator to plan
+    showToast('✅ Added extra rest days to your plan!');
+  } else if(fb.includes('cardio')) {
+    showToast('✅ Increased cardio sessions in your plan!');
+  } else if(fb.includes('intensity') && fb.includes('reduce')) {
+    updated.user.intensity = 'Low';
+    showToast('✅ Reduced workout intensity!');
+  } else if(fb.includes('increase')) {
+    updated.user.intensity = 'High';
+    showToast('✅ Increased workout intensity!');
+  } else {
+    showToast('✅ Plan updated based on your feedback!');
+  }
+
+  currentPlan = updated;
+  renderPlan(currentPlan);
+  setTimeout(()=>{ const b = document.getElementById('updateBanner'); if(b) b.classList.add('show'); },100);
+  setTimeout(()=>{ document.getElementById('feedbackCard')?.scrollIntoView({behavior:'smooth'}); },200);
+}
+
+function toggleChip(chip) { chip.classList.toggle('selected'); }
+
+// ============================================================
+// SAVE PLANS
+// ============================================================
+function savePlan() {
+  if(!currentPlan) return;
+  let plans = JSON.parse(localStorage.getItem('fitbuddy_plans') || '[]');
+  const exists = plans.find(p => p.id === currentPlan.id);
+  if(exists) { showToast('ℹ️ Plan already saved!'); return; }
+  plans.push({ id:currentPlan.id, user:currentPlan.user, planData:currentPlan.planData, generatedAt: new Date().toISOString() });
+  localStorage.setItem('fitbuddy_plans', JSON.stringify(plans));
+  updateBadge();
+  showToast('💾 Plan saved successfully!');
+}
+
+function updateBadge() {
+  const plans = JSON.parse(localStorage.getItem('fitbuddy_plans') || '[]');
+  document.getElementById('planCount').textContent = plans.length;
+}
+
+function renderSavedPlans() {
+  const plans = JSON.parse(localStorage.getItem('fitbuddy_plans') || '[]');
+  const grid = document.getElementById('savedPlansGrid');
+  if(plans.length===0) {
+    grid.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">No plans saved yet</div><div>Generate a plan and hit 💾 Save to see it here.</div></div>`;
+    return;
+  }
+  grid.className = 'saved-grid';
+  grid.innerHTML = plans.reverse().map(p => {
+    const intBadge = 'badge-intensity-' + (p.user.intensity||'medium').toLowerCase();
+    return `<div class="saved-card">
+      <div class="saved-card-name">💪 ${p.user.name}</div>
+      <div class="saved-card-date">📅 ${new Date(p.generatedAt).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'})}</div>
+      <div class="plan-badges">
+        <span class="badge badge-goal" style="font-size:0.72rem">🎯 ${p.user.goal}</span>
+        <span class="badge ${intBadge}" style="font-size:0.72rem">⚡ ${p.user.intensity}</span>
+      </div>
+      <div class="saved-card-actions">
+        <button class="btn-view" onclick="viewSavedPlan(${p.id})">👁 View Plan</button>
+        <button class="btn-del" onclick="deletePlan(${p.id})">🗑 Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function viewSavedPlan(id) {
+  const plans = JSON.parse(localStorage.getItem('fitbuddy_plans') || '[]');
+  const p = plans.find(x => x.id === id);
+  if(!p) return;
+  currentPlan = { id:p.id, user:p.user, planData:p.planData, generatedAt:new Date(p.generatedAt) };
+  renderPlan(currentPlan);
+  showPage('plan', null);
+}
+
+function deletePlan(id) {
+  let plans = JSON.parse(localStorage.getItem('fitbuddy_plans') || '[]');
+  plans = plans.filter(p => p.id !== id);
+  localStorage.setItem('fitbuddy_plans', JSON.stringify(plans));
+  updateBadge();
+  renderSavedPlans();
+  showToast('🗑 Plan deleted');
+}
+
+// ============================================================
+// NUTRITION TIPS
+// ============================================================
+function renderNutritionTips(filter) {
+  const tips = filter==='all' ? NUTRITION_TIPS : NUTRITION_TIPS.filter(t=>t.goal===filter);
+  const grid = document.getElementById('nutGrid');
+  grid.innerHTML = tips.map(t => `
+    <div class="nut-card">
+      <div class="nut-card-icon">${t.icon}</div>
+      <div class="nut-card-title">${t.title}</div>
+      <div class="nut-card-text">${t.text}</div>
+      <span class="nut-card-goal">${t.goal}</span>
+    </div>`).join('');
+}
+function filterNutrition(goal, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderNutritionTips(goal);
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = type==='error' ? 'var(--accent-pink)' : 'var(--accent-green)';
+  t.style.color = type==='error' ? 'var(--accent-pink)' : 'var(--accent-green)';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+// ============================================================
+// COUNTER ANIMATION
+// ============================================================
+function animateCounter(id, end, suffix='', duration=1800) {
+  const el = document.getElementById(id);
+  let start = 0, step = end/60;
+  const timer = setInterval(() => {
+    start += step;
+    if(start >= end) { el.textContent = end + suffix; clearInterval(timer); }
+    else el.textContent = Math.floor(start) + suffix;
+  }, duration/60);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.onload = function() {
+  updateBadge();
+  animateCounter('counter1', 12847, '+');
+  animateCounter('counter2', 95, '%');
+  animateCounter('counter3', 5, '');
+  animateCounter('counter4', 7, '');
+  renderNutritionTips('all');
+  // Open first day by default on plan render
+  document.addEventListener('click', function(e) {
+    if(e.target.closest('.day-header')) return; // handled by toggleDay
+  });
+};
+</script>
+</body>
+</html>
